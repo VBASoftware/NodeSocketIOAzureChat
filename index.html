@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Chat</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <style>
+        body {
+            margin-top: 24px;
+        }
+
+        #channels,
+        #users,
+        #messages {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+            #messages li {
+                padding: 5px 10px;
+            }
+
+                #messages li:nth-child(odd) {
+                    background: #eee;
+                }
+
+        #chat-panel {
+            height: 400px;
+            overflow-y: scroll;
+        }
+
+        .join {
+            background-color: aquamarine !important;
+            font-weight: bold;
+        }
+
+        .leave {
+            background-color: coral !important;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="join-wrapper">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <form id="join-form" action="">
+                            <div class="form-group">
+                                <label for="n">Please Select a Nickname</label>
+                                <input type="text" class="form-control" id="n" placeholder="Nickname" autocomplete="off">
+                            </div>
+                            <button class="btn btn-default">Join</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="chat-wrapper">
+        <div class="row">
+            <div class="col-sm-8">
+                <div class="panel panel-default">
+                    <div class="panel-body" id="chat-panel">
+                        <ul id="messages"></ul>
+                    </div>
+                </div>
+                <div>
+                    <form id="chat-form" action="" class="form-inline">
+                        <div class="form-group">
+                            <label for="m">Message</label>
+                            <input type="text" class="form-control" id="m" placeholder="Message" autocomplete="off">
+                        </div>
+                        <button class="btn btn-default">Send</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="panel panel-default">
+                    <div class="panel-body" id="user-panel">
+                        <h3>Welcome <span></span></h3>
+                    </div>
+                </div>
+                <div class="panel panel-default">
+                    <div class="panel-body" id="user-panel">
+                        <h3>Users</h3>
+                        <ul id="users"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/socket.io-1.3.6.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            var socket,
+                userName;
+
+            $('#join-wrapper').show();
+            $('#chat-wrapper').hide();
+
+            $('#join-form').submit(function () {
+
+                userName = $('#n').val();
+
+                //socket = io('http://localhost:1337/', {
+                socket = io('http://vbachat.azurewebsites.net/', {
+                    query: 'UserName=' + userName
+                });
+
+                socket.on('join', function (userName) {
+                    console.log('LEAVE');
+                    $('#messages').append($('<li class="join">').text(userName + ' has joined the room.'));
+                });
+
+                socket.on('chat message', function (msg) {
+                    console.log('CHAT');
+                    $('#messages').append($('<li>').text(msg.user + ': ' + msg.message));
+                });
+
+                socket.on('leave', function (userName) {
+                    $('#messages').append($('<li class="leave">').text(userName + ' has left the room.'));
+                });
+
+                socket.on('updateUserList', function (userList) {
+                    $('#users').empty();
+
+                    $.each(userList, function (index, user) {
+                        $('#users').append($('<li>').text(user.UserName));
+                    });
+                });
+
+                $('#user-panel span').text(userName);
+                $('#join-wrapper').hide();
+                $('#chat-wrapper').show();
+
+                return false;
+            });
+
+            $('#chat-form').submit(function () {
+                var msg = {
+                    user: userName,
+                    message: $('#m').val()
+                }
+
+                // Emit the message
+                socket.emit('chat message', msg);
+
+                // Clear the message box
+                $('#m').val('');
+
+                return false;
+            });
+
+        });
+    </script>
+</body>
+</html>
